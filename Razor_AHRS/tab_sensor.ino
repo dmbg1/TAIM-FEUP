@@ -48,21 +48,21 @@ void loop() {
     output_angles();
 
     float ypr[3] = {TO_DEG(yaw), TO_DEG(pitch), TO_DEG(roll)};
-    if (ypr[1] <= 50 && prevPitch > 50) 
+    if (ypr[1] >= 50 && prevPitch < 50) 
       IN_TAB_MENU ? change_tab_in_menu(false) :  tab_menu(false);
     else if (ypr[1] >= 50 && prevPitch >= 50) {
-      if(time_changing_forward >= 1500) {
+      if(time_changing_forward >= 1000) {
         change_tab_in_menu(false);
-        time_changing_forward -= 1500;
+        time_changing_forward -= 1000;
       }
       else time_changing_forward += time_delta;
     }
-    else if (ypr[1] >= -50 && prevPitch < -50) 
+    else if (ypr[1] <= -50 && prevPitch > -50) 
     IN_TAB_MENU ? change_tab_in_menu(true) :  tab_menu(true);
     else if (ypr[1] <= -50 && prevPitch <= -50) {
-      if(time_changing_backwards >= 1500) {
+      if(time_changing_backwards >= 1000) {
         change_tab_in_menu(true);
-        time_changing_backwards -= 1500;
+        time_changing_backwards -= 1000;
       }
       else time_changing_backwards += time_delta;
     }
