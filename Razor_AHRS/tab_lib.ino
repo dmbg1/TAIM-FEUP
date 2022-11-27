@@ -33,3 +33,31 @@ void change_workspace(bool front) {
   Keyboard.press(front ? KEY_RIGHT_ARROW : KEY_LEFT_ARROW);
   Keyboard.releaseAll();
 }
+
+// Checks if yaw, pitch and roll of specific iteration corresponds to the conditions for changing a workspace
+bool is_changing_workspace (bool front, float* ypr, float prevRoll) {
+  return !front ? ypr[2] >= 50 && prevRoll < 50 : ypr[2] <= -50 && prevRoll > -50;
+}
+
+void minimize_all_tabs() {
+  Keyboard.press(KEY_LEFT_GUI);
+  Keyboard.press('m');
+  Keyboard.releaseAll();
+}
+
+void maximize_all_tabs() {
+  Keyboard.press(KEY_LEFT_SHIFT);
+  Keyboard.press(KEY_LEFT_GUI);
+  Keyboard.press('m');
+  Keyboard.releaseAll();
+}
+
+// Checks if yaw, pitch and roll of specific iteration corresponds to the conditions for minimizing all tabs
+bool is_minimizing_tabs (float* ypr, float prevYaw) {
+  return ypr[0] <= -130 && prevYaw > -130;
+}
+
+// Checks if yaw, pitch and roll of specific iteration corresponds to the conditions for maximizing all tabs
+bool is_maximizing_tabs (float* ypr, float prevYaw) {
+  return ypr[0] >= -10 && prevYaw < -10;
+}

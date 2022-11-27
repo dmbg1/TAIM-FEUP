@@ -5,7 +5,11 @@ typedef enum {
   NEUTRAL,
   IN_TAB_MENU_FORWARD,
   IN_TAB_MENU_BACKWARD, 
-  ENTER_TAB
+  ENTER_TAB,
+  CHANGE_WS_FORWARD,
+  CHANGE_WS_BACKWARD,
+  MIN_TABS,
+  MAX_TABS
 } sensor_state;
 
 sensor_state sensorState = NEUTRAL; 
@@ -23,6 +27,19 @@ void state_machine(float timeDelta) {
     case ENTER_TAB: 
       leave_tab_menu();
       time_changing_tab = 0;
+      sensorState = NEUTRAL;
+      break;
+    case CHANGE_WS_FORWARD:
+    case CHANGE_WS_BACKWARD:
+      change_workspace(sensorState == CHANGE_WS_FORWARD);
+      sensorState = NEUTRAL;
+      break;
+    case MIN_TABS:
+      minimize_all_tabs();
+      sensorState = NEUTRAL;
+      break;
+    case MAX_TABS:
+      maximize_all_tabs();
       sensorState = NEUTRAL;
       break;
     case NEUTRAL: 
@@ -91,11 +108,22 @@ void loop() {
       if (!is_tab_change_in_menu(sensorState == IN_TAB_MENU_FORWARD, ypr, prev_ypr[1])) 
         sensorState = ENTER_TAB;
     
+    if (sensorState != IN_TAB_MENU_BACKWARD && sensorState != IN_TAB_MENU_FORWARD && sensorState != ENTER_TAB) {
+      if (is_changing_workspace(true, ypr, prev_ypr[2])) 
+        sensorState = CHANGE_WS_FORWARD;
+      else if (is_changing_workspace(false, ypr, prev_ypr[2]))
+        sensorState = CHANGE_WS_BACKWARD;
+      if (sensorState != CHANGE_WS_FORWARD && sensorState != CHANGE_WS_BACKWARD) {
+        if (is_minimizing_tabs(ypr, prev_ypr[0]))
+          sensorState = MIN_TABS;
+        else if (is_maximizing_tabs(ypr, prev_ypr[0])) 
+          sensorState = MAX_TABS;
+      }
+    }
+
     state_machine(time_delta);
     prev_ypr[0] = ypr[0];
-    Serial.println(prev_ypr[1]);
     prev_ypr[1] = ypr[1];
-    Serial.println(ypr[1]);
     prev_ypr[2] = ypr[2];
   }
 }
