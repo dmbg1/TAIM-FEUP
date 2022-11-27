@@ -1,5 +1,34 @@
-float prevYaw = 0, prevPitch = 0, prevRoll = 0,
-time_not_changing_tab = 0, time_changing_forward = 0, time_changing_backwards = 0;
+float time_changing_tab = 0, prev_ypr[3] = {0, 0, 0};
+
+
+typedef enum {
+  NEUTRAL,
+  IN_TAB_MENU_FORWARD,
+  IN_TAB_MENU_BACKWARD, 
+  ENTER_TAB
+} sensor_state;
+
+sensor_state sensorState = NEUTRAL; 
+
+void state_machine(float timeDelta) {
+  switch(sensorState) {
+    case IN_TAB_MENU_FORWARD:
+    case IN_TAB_MENU_BACKWARD: 
+      if(time_changing_tab >= 1000) {
+        change_tab_in_menu(sensorState == IN_TAB_MENU_FORWARD);
+        time_changing_tab -= 1000;
+      }
+      else time_changing_tab += timeDelta; 
+      break;
+    case ENTER_TAB: 
+      leave_tab_menu();
+      time_changing_tab = 0;
+      sensorState = NEUTRAL;
+      break;
+    case NEUTRAL: 
+      break;
+  }
+}
 
 void setup() {
   // Init serial output
@@ -22,6 +51,7 @@ void setup() {
 }
 
 void loop() {
+
   // Time to read the sensors again?
   if((millis() - timestamp) >= OUTPUT__DATA_INTERVAL)
   {
@@ -48,29 +78,24 @@ void loop() {
     output_angles();
 
     float ypr[3] = {TO_DEG(yaw), TO_DEG(pitch), TO_DEG(roll)};
-    if (ypr[1] >= 50 && prevPitch < 50) 
-      IN_TAB_MENU ? change_tab_in_menu(false) :  tab_menu(false);
-    else if (ypr[1] >= 50 && prevPitch >= 50) {
-      if(time_changing_forward >= 1000) {
-        change_tab_in_menu(false);
-        time_changing_forward -= 1000;
-      }
-      else time_changing_forward += time_delta;
+
+    if (is_first_tab_change(false, ypr, prev_ypr[1])) {
+      sensorState = IN_TAB_MENU_BACKWARD;
+      tab_menu(false);
     }
-    else if (ypr[1] <= -50 && prevPitch > -50) 
-    IN_TAB_MENU ? change_tab_in_menu(true) :  tab_menu(true);
-    else if (ypr[1] <= -50 && prevPitch <= -50) {
-      if(time_changing_backwards >= 1000) {
-        change_tab_in_menu(true);
-        time_changing_backwards -= 1000;
-      }
-      else time_changing_backwards += time_delta;
+    else if (is_first_tab_change(true, ypr, prev_ypr[1])) {
+      sensorState = IN_TAB_MENU_FORWARD;
+      tab_menu(true);
     }
-    else {
-      if (time_changing_forward > 0) time_changing_forward = 0;
-      else if (time_changing_backwards > 0) time_changing_backwards = 0;
-      leave_tab_menu();
-    }
-    prevPitch = ypr[1];
+    else if (sensorState == IN_TAB_MENU_BACKWARD || sensorState == IN_TAB_MENU_FORWARD) 
+      if (!is_tab_change_in_menu(sensorState == IN_TAB_MENU_FORWARD, ypr, prev_ypr[1])) 
+        sensorState = ENTER_TAB;
+    
+    state_machine(time_delta);
+    prev_ypr[0] = ypr[0];
+    Serial.println(prev_ypr[1]);
+    prev_ypr[1] = ypr[1];
+    Serial.println(ypr[1]);
+    prev_ypr[2] = ypr[2];
   }
 }
