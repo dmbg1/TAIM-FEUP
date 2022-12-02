@@ -44,11 +44,13 @@ int total_workspaces = 6;
 int target_workspace = 1;
 
 
-float TAB_CHANGE_INTERVAL = 900;
-float WORKSPACE_CHANGE_INTERVAL = 900;
-float WORKSPACE_MENU_CHANGE_INTERVAL = 500;
+float TAB_CHANGE_INTERVAL = 700;
+float WORKSPACE_CHANGE_INTERVAL = 1200;
+float WORKSPACE_MENU_CHANGE_INTERVAL = 200;
 
 float target_squared_yaw_pitch_angle = 50;
+
+bool wintab_toggled = false;
 
 
 enum SensorState state_machine_joystick(SensorState senState, directions joystickDirection);
@@ -60,6 +62,11 @@ void reset_to_normal_state(){
   //is_going_to_specific_workspace = false;
 
 
+  if(wintab_toggled == true){
+    toggle_workspace_menu();
+    wintab_toggled = false;
+  }
+
   time_changing_tab = 0;
 
   workspaceMenuState = WorkspaceMenuState::OTHER_STATE;
@@ -68,6 +75,11 @@ void reset_to_normal_state(){
 }
 
 enum SensorState state_machine_joystick(SensorState senState, directions joystickDirection) {
+
+  // NEVER change state while chaning workspaces, causes desync between perceived workspace and real workspace because some workspaces haven't been moved yet.
+  if(workspaceMenuState == WorkspaceMenuState::CHANGING_WORKSPACES)
+    return SensorState::WORKSPACE_MENU;
+
   /*
   
   OFF,
@@ -419,6 +431,10 @@ int max_tabs = 6;
           if(workspaceMenuState == WorkspaceMenuState::OTHER_STATE){
             Serial.println("Reached start state");
             workspaceMenuState = WorkspaceMenuState::START;
+            if(!wintab_toggled){
+              toggle_workspace_menu();
+              wintab_toggled = true;
+            }
             break;
           }
         }
@@ -427,6 +443,10 @@ int max_tabs = 6;
           workspaceMenuState = WorkspaceMenuState::HAS_GONE_NEUTRAL;
         }
         else if(workspaceMenuState == WorkspaceMenuState::SELECTED_DIRECTION){
+          if(wintab_toggled){
+            toggle_workspace_menu();
+            wintab_toggled = false;
+          }
           Serial.println("Changing workspaces");
           workspaceMenuState = WorkspaceMenuState::CHANGING_WORKSPACES;
           int curWorkspace = move_workspace(total_workspaces, selected_workspace, target_workspace);
