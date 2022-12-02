@@ -1,14 +1,19 @@
 #include "Keyboard.h"
 
 // Enters tab menu by changing to either the next tab or the previous tab according to the "front" parameter
-void tab_menu(bool front) {
+void start_tab_menu(bool front) {
   Keyboard.press(KEY_LEFT_ALT);
   change_tab_in_menu(front);
 }
+
+/*
 // Checks if yaw, pitch and roll of specific iteration corresponds to the conditions for entering tab menu
 bool is_first_tab_change (bool front, float* ypr, float prevPitch) {
   return !front ? ypr[1] >= 50 && prevPitch < 50 : ypr[1] <= -50 && prevPitch > -50;
 }
+*/
+
+
 // Changes tab in menu
 void change_tab_in_menu(bool front) {
   if(!front)
@@ -61,3 +66,49 @@ bool is_minimizing_tabs (float* ypr, float prevYaw) {
 bool is_maximizing_tabs (float* ypr, float prevYaw) {
   return ypr[0] >= -10 && prevYaw < -10;
 }
+
+void toggle_workspace_menu(){
+  Keyboard.press(KEY_LEFT_GUI);
+  Keyboard.press(KEY_TAB);
+  Keyboard.releaseAll();
+}
+
+// Returns the tab it just moved to. Moves one workspace closer to the target. Chooses forward or backward depending on which one is possible
+int move_workspace(int totalWorkspaces, int curWorkspace, int targetWorkspace){
+  if(curWorkspace == targetWorkspace)
+    return curWorkspace;
+
+  int distance_forward = targetWorkspace - curWorkspace;//(curWorkspace > targetWorkspace) ? totalWorkspaces + targetWorkspace - curWorkspace : targetWorkspace - curWorkspace;
+
+  int distance_backward = curWorkspace - targetWorkspace;//(curWorkspace > targetWorkspace) ? curWorkspace - targetWorkspace : totalWorkspaces + curWorkspace - targetWorkspace;
+
+  if(distance_forward <= 0){
+    distance_forward = 999999;
+  }
+  if(distance_backward <= 0){
+    distance_backward = 999999;
+  }
+
+  if(distance_forward <= distance_backward){
+    change_workspace(true);
+    curWorkspace += 1;
+    if(curWorkspace > totalWorkspaces){
+      curWorkspace = 1;
+    }
+  }
+  else{
+    change_workspace(false);
+    curWorkspace -= 1;
+    if(curWorkspace <= 0){
+      curWorkspace = totalWorkspaces;
+    }
+  }
+
+
+  return curWorkspace;
+}
+
+void release_all(){
+  Keyboard.releaseAll();
+}
+

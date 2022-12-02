@@ -1,0 +1,50 @@
+bool isMinimized = false;
+
+Estado ON:
+    Tab frente (TF)
+    Tab trás (TT)
+    Workspace frente (WF)
+    Workspace trás (WB)
+    Abrir menu de selecionar workspace (MENU)
+    Minimizar/Maximizar (if(isMinimized) {MI; isMinimized = true;} else {MA; isMinimized = false;})
+    Desligar (OFF)
+
+Estado desligado OFF:
+    Ligar (ON)
+
+Estado TF: A dar Tab a frente:
+    Parar de dar tab frente (ON)
+    Tab frente
+
+Estado TB: A dar Tab trás:
+    Parar de dar tab (ON)
+    Tab frente
+
+Estado WF: A dar Workspace frente:
+    Parar de dar workspace frente (ON)
+    Workspace frente
+
+Estado WB: A dar Workspace frente:
+    Parar de dar workspace frente (ON)
+    Workspace frente
+
+Estado MI: A minimizar:
+    Parar de maximizar ((ON) isMinimized = true;)
+    Fazer nada
+
+Estado MA: A maximizar:
+    Parar de maximizar ((ON) isMinimized = false;)
+    Fazer nada
+
+
+Estado MENU: Menu de selecionar workspace aberto:
+    Fechar menu de selecionar workspaces (ON)
+    Alterar para workspace 1.
+    Alterar para workspace 2.
+    Alterar para workspace 3.
+    Alterar para workspace 4.
+    Alterar para workspace [...].
+    Alterar para workspace n.
+
+
+
