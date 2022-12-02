@@ -24,3 +24,11 @@ enum SensorState {
   MAX_TABS,
   WORKSPACE_MENU
 };
+
+enum WorkspaceMenuState {
+  OTHER_STATE,
+  START,
+  HAS_GONE_NEUTRAL,
+  SELECTED_DIRECTION,
+  CHANGING_WORKSPACES
+};

@@ -1,6 +1,6 @@
 #include "Enums.h"
 
-float time_changing_tab = 0, prev_ypr[3] = { 0, 0, 0 };
+float time_changing_tab = 0.0; //prev_ypr[3] = { 0, 0, 0 };
 
 
 
@@ -28,12 +28,13 @@ directions joystick_direction = directions::NONE;
 
 SensorState currentState = SensorState::NEUTRAL;
 
+WorkspaceMenuState workspaceMenuState = WorkspaceMenuState::OTHER_STATE;
+
 bool are_tabs_minimized = false;
 
 // True if in workspace menu or chaning workspaces when selecting a tab from workspace menu
-bool is_doing_workspace_menu_operation = false;
-bool is_going_to_specific_workspace = false;
-
+//bool is_doing_workspace_menu_operation = false;
+//bool is_going_to_specific_workspace = false;
 
 int selected_workspace = 1;
 
@@ -41,7 +42,6 @@ int selected_workspace = 1;
 int total_workspaces = 6;
 
 int target_workspace = 1;
-bool has_target_workspace = false;
 
 
 float TAB_CHANGE_INTERVAL = 900;
@@ -50,17 +50,19 @@ float WORKSPACE_MENU_CHANGE_INTERVAL = 500;
 
 float target_squared_yaw_pitch_angle = 50;
 
-//bool workspace_menu_has_gone_up = false;
 
 enum SensorState state_machine_joystick(SensorState senState, directions joystickDirection);
 
-void reset_to_normal_state(){
-  is_doing_workspace_menu_operation = false;
-  is_going_to_specific_workspace = false;
 
-  has_target_workspace = false;
+// Called on returning to normal or off states
+void reset_to_normal_state(){
+  //is_doing_workspace_menu_operation = false;
+  //is_going_to_specific_workspace = false;
+
 
   time_changing_tab = 0;
+
+  workspaceMenuState = WorkspaceMenuState::OTHER_STATE;
 
   release_all();
 }
@@ -159,28 +161,40 @@ enum SensorState state_machine_joystick(SensorState senState, directions joystic
       case directions::UP:
         return SensorState::OFF;
       case directions::DOWN_LEFT:
-        has_target_workspace = true;
-        target_workspace = 1;
+        if(workspaceMenuState == WorkspaceMenuState::HAS_GONE_NEUTRAL){
+          workspaceMenuState = WorkspaceMenuState::SELECTED_DIRECTION;
+          target_workspace = 1;
+        }
         return SensorState::WORKSPACE_MENU;
       case directions::LEFT:
-        has_target_workspace = true;
-        target_workspace = 2;
+        if(workspaceMenuState == WorkspaceMenuState::HAS_GONE_NEUTRAL){
+          workspaceMenuState = WorkspaceMenuState::SELECTED_DIRECTION;
+          target_workspace = 2;
+        }
         return SensorState::WORKSPACE_MENU;
       case directions::UP_LEFT:
-        has_target_workspace = true;
-        target_workspace = 3;
+        if(workspaceMenuState == WorkspaceMenuState::HAS_GONE_NEUTRAL){
+          workspaceMenuState = WorkspaceMenuState::SELECTED_DIRECTION;
+          target_workspace = 3;
+        }
         return SensorState::WORKSPACE_MENU;
       case directions::UP_RIGHT:
-        has_target_workspace = true;
-        target_workspace = 4;
+        if(workspaceMenuState == WorkspaceMenuState::HAS_GONE_NEUTRAL){
+          workspaceMenuState = WorkspaceMenuState::SELECTED_DIRECTION;
+          target_workspace = 4;
+        }
         return SensorState::WORKSPACE_MENU;
       case directions::RIGHT:
-        has_target_workspace = true;
-        target_workspace = 5;
+        if(workspaceMenuState == WorkspaceMenuState::HAS_GONE_NEUTRAL){
+          workspaceMenuState = WorkspaceMenuState::SELECTED_DIRECTION;
+          target_workspace = 5;
+        }
         return SensorState::WORKSPACE_MENU;
       case directions::DOWN_RIGHT:
-        has_target_workspace = true;
-        target_workspace = 6;
+        if(workspaceMenuState == WorkspaceMenuState::HAS_GONE_NEUTRAL){
+          workspaceMenuState = WorkspaceMenuState::SELECTED_DIRECTION;
+          target_workspace = 6;
+        }
         return SensorState::WORKSPACE_MENU;
       case directions::NONE:
         return SensorState::WORKSPACE_MENU;
@@ -315,6 +329,9 @@ int max_tabs = 6;
     
     Serial.print("Current state: ");
     Serial.println(currentState);
+    
+    Serial.print("Workspace state: ");
+    Serial.println(workspaceMenuState);
 
     switch (currentState){
       //case NEUTRAL:
@@ -394,41 +411,51 @@ int max_tabs = 6;
         if(prevState != SensorState::WORKSPACE_MENU)
           reset_to_normal_state();
         break;
-        
+      case SensorState::OFF:
+          reset_to_normal_state();
+        break;
       case SensorState::WORKSPACE_MENU:
         if(prevState == SensorState::NEUTRAL){
-          if(!is_doing_workspace_menu_operation){
-            is_doing_workspace_menu_operation = true;
-            is_going_to_specific_workspace = false;
-            //toggle_workspace_menu();
+          if(workspaceMenuState == WorkspaceMenuState::OTHER_STATE){
+            Serial.println("Reached start state");
+            workspaceMenuState = WorkspaceMenuState::START;
+            break;
           }
         }
-        else if(prevState == SensorState::WORKSPACE_MENU){
-          if(is_doing_workspace_menu_operation && !is_going_to_specific_workspace && has_target_workspace){
-            has_target_workspace = false;
+        if(workspaceMenuState == WorkspaceMenuState::START && joystick_direction == directions::NONE){
+            Serial.println("Reached neutral");
+          workspaceMenuState = WorkspaceMenuState::HAS_GONE_NEUTRAL;
+        }
+        else if(workspaceMenuState == WorkspaceMenuState::SELECTED_DIRECTION){
+          Serial.println("Changing workspaces");
+          workspaceMenuState = WorkspaceMenuState::CHANGING_WORKSPACES;
+          int curWorkspace = move_workspace(total_workspaces, selected_workspace, target_workspace);
+          selected_workspace = curWorkspace;
+          if(selected_workspace != target_workspace){
+            time_changing_tab = 0;
+            break;
+          }
+          else{
+            time_changing_tab = 0;
+            //is_going_to_specific_workspace = false;
+            //is_doing_workspace_menu_operation = false;
+            currentState = SensorState::OFF;
+            workspaceMenuState = WorkspaceMenuState::OTHER_STATE;
+            reset_to_normal_state();
+          }
+        }
+        else if(workspaceMenuState == WorkspaceMenuState::CHANGING_WORKSPACES){
+          time_changing_tab += time_delta;
+          while(time_changing_tab >= WORKSPACE_MENU_CHANGE_INTERVAL){
+            time_changing_tab -= WORKSPACE_MENU_CHANGE_INTERVAL;
             int curWorkspace = move_workspace(total_workspaces, selected_workspace, target_workspace);
             selected_workspace = curWorkspace;
-            if(selected_workspace != target_workspace){
-              is_going_to_specific_workspace = true;
-            }
-            else{
-              time_changing_tab = 0;
-              is_going_to_specific_workspace = false;
-              is_doing_workspace_menu_operation = false;
+            if(selected_workspace == target_workspace){
+              //is_going_to_specific_workspace = false;
+              //is_doing_workspace_menu_operation = false;
               currentState = SensorState::OFF;
-            }
-          }
-          else if(is_going_to_specific_workspace){
-            time_changing_tab += time_delta;
-            while(time_changing_tab >= WORKSPACE_MENU_CHANGE_INTERVAL){
-              time_changing_tab -= WORKSPACE_MENU_CHANGE_INTERVAL;
-              int curWorkspace = move_workspace(total_workspaces, selected_workspace, target_workspace);
-              selected_workspace = curWorkspace;
-              if(selected_workspace == target_workspace){
-                is_going_to_specific_workspace = false;
-                is_doing_workspace_menu_operation = false;
-                currentState = SensorState::OFF;
-              }
+              workspaceMenuState = WorkspaceMenuState::OTHER_STATE;
+              reset_to_normal_state();
             }
           }
         }
@@ -470,8 +497,8 @@ int max_tabs = 6;
     */
 
 
-    prev_ypr[0] = ypr[0];
-    prev_ypr[1] = ypr[1];
-    prev_ypr[2] = ypr[2];
+    //prev_ypr[0] = ypr[0];
+    //prev_ypr[1] = ypr[1];
+    //prev_ypr[2] = ypr[2];
   }
 }
