@@ -30,7 +30,7 @@ SensorState currentState = SensorState::NEUTRAL;
 
 WorkspaceMenuState workspaceMenuState = WorkspaceMenuState::OTHER_STATE;
 
-bool are_tabs_minimized = false;
+bool are_tabs_minimized[5] = {false, false, false, false, false};
 
 // True if in workspace menu or chaning workspaces when selecting a tab from workspace menu
 //bool is_doing_workspace_menu_operation = false;
@@ -117,7 +117,7 @@ enum SensorState state_machine_joystick(SensorState senState, directions joystic
       case directions::DOWN:
         return SensorState::WORKSPACE_MENU;
       case directions::DOWN_LEFT:
-        if (!are_tabs_minimized)
+        if (! are_tabs_minimized[selected_workspace])
           return SensorState::MIN_TABS;
         else
           return SensorState::MAX_TABS;
@@ -348,6 +348,7 @@ int max_tabs = 6;
     switch (currentState){
       //case NEUTRAL:
       case SensorState::IN_TAB_MENU_FORWARD:
+        are_tabs_minimized[selected_workspace] = false;
         if(prevState == SensorState::NEUTRAL){
           time_changing_tab = 0;
           start_tab_menu(true);
@@ -361,6 +362,7 @@ int max_tabs = 6;
         }
         break;
       case SensorState::IN_TAB_MENU_BACKWARD:
+        are_tabs_minimized[selected_workspace] = false;
         if(prevState == SensorState::NEUTRAL){
           time_changing_tab = 0;
           start_tab_menu(false);
@@ -409,13 +411,13 @@ int max_tabs = 6;
         break;
       case SensorState::MIN_TABS:
         if(prevState == SensorState::NEUTRAL){
-          are_tabs_minimized = true;
+          are_tabs_minimized[selected_workspace] = true;
           minimize_all_tabs();
         }
         break;
       case SensorState::MAX_TABS:
         if(prevState == SensorState::NEUTRAL){
-          are_tabs_minimized = false;
+          are_tabs_minimized[selected_workspace] = false;
           maximize_all_tabs();
         }
         break;
@@ -485,40 +487,5 @@ int max_tabs = 6;
     Serial.print("Current ws: ");
     Serial.println(selected_workspace);
 
-      /*
-    float ypr[3] = {TO_DEG(yaw), TO_DEG(pitch), TO_DEG(roll)};
-
-    if (is_first_tab_change(false, ypr, prev_ypr[1])) {
-      sensorState = IN_TAB_MENU_BACKWARD;
-      tab_menu(false);
-    }
-    else if (is_first_tab_change(true, ypr, prev_ypr[1])) {
-      sensorState = IN_TAB_MENU_FORWARD;
-      tab_menu(true);
-    }
-    else if (sensorState == IN_TAB_MENU_BACKWARD || sensorState == IN_TAB_MENU_FORWARD) 
-      if (!is_tab_change_in_menu(sensorState == IN_TAB_MENU_FORWARD, ypr, prev_ypr[1])) 
-        sensorState = ENTER_TAB;
-    
-    if (sensorState != IN_TAB_MENU_BACKWARD && sensorState != IN_TAB_MENU_FORWARD && sensorState != ENTER_TAB) {
-      if (is_changing_workspace(true, ypr, prev_ypr[2])) 
-        sensorState = CHANGE_WS_FORWARD;
-      else if (is_changing_workspace(false, ypr, prev_ypr[2]))
-        sensorState = CHANGE_WS_BACKWARD;
-      if (sensorState != CHANGE_WS_FORWARD && sensorState != CHANGE_WS_BACKWARD) {
-        if (is_minimizing_tabs(ypr, prev_ypr[0]))
-          sensorState = MIN_TABS;
-        else if (is_maximizing_tabs(ypr, prev_ypr[0])) 
-          sensorState = MAX_TABS;
-      }
-    }
-
-    state_machine(time_delta);
-    */
-
-
-    //prev_ypr[0] = ypr[0];
-    //prev_ypr[1] = ypr[1];
-    //prev_ypr[2] = ypr[2];
   }
 }
